@@ -10,13 +10,34 @@ app.use(express.json());
 
 app.use("/customer",session({secret:"fingerprint_customer",resave: true, saveUninitialized: true}))
 
-app.use("/customer/auth/*", function auth(req,res,next){
-//Write the authenication mechanism here
-});
- 
+app.use("/customer/auth", (req, res, next) => {
+    try {
+      const authHeader = req.headers["authorization"];
+  
+      if (!authHeader) {
+        return res.status(401).json({ message: "Token missing" });
+      }
+  
+      // Expected format: Bearer <token>
+      const token = authHeader.split(" ")[1];
+  
+      jwt.verify(token, "your_secret_key", (err, user) => {
+        if (err) {
+          return res.status(403).json({ message: "Invalid or expired token" });
+        }
+  
+        req.user = user; // attach decoded user
+        next();
+      });
+  
+    } catch (err) {
+      return res.status(500).json({ message: "Server error" });
+    }
+  });
+
 const PORT =5000;
 
 app.use("/customer", customer_routes);
-app.use("/", genl_routes);
+app.use("/", genl_routes); 
 
 app.listen(PORT,()=>console.log("Server is running"));
